@@ -5,31 +5,37 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Parses csv in format of Course data
+ * Stores data in a List and can send the data using getCsvData()
+ */
 public class CsvParser {
     public String path;
-    public List<Course> courses;
+    private List<Course> courses;
+
+    public TreeMap<String, List<Course>> treeMap;
     public CsvParser(String path) {
        this.path = path;
        courses = new ArrayList<>();
-       populateCourses();
+       populateCsvData();
     }
 
-    public List<Course> getData() {
+    public List<Course> getCsvData() {
         return courses;
     }
-    private void populateCourses() {
+
+    private void populateCsvData() {
         String line;
-        String csvSplitBy = ","; // Assuming CSV fields are separated by commas
+        String csvSplitBy = ",";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
-            br.readLine(); // Assuming the first line is header and you want to skip it
+            br.readLine();
             while ((line = br.readLine()) != null) {
                 String[] data = splitCSVLine(line);
-                addNewCourse(data);
+                addNewLine(data);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     private static String[] splitCSVLine(String line) {
@@ -51,7 +57,7 @@ public class CsvParser {
         return fields.toArray(new String[0]);
     }
 
-    private void addNewCourse(String[] data) {
+    private void addNewLine(String[] data) {
         String semester = data[0].strip();
         String subject = data[1].strip();
         String catalogNumber = data[2].strip();

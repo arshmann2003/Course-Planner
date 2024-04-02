@@ -1,22 +1,52 @@
 package application.model;
 
-import com.sun.source.tree.Tree;
-
 import java.util.*;
 
+/**
+ * Class to manipulate and efficiently store csv data
+ * Aggregates same courses and sections
+ * Dumps courses in a formatted way to servers terminal
+ * Sorts courses based on name + catalog number
+ */
 public class CourseOfferings {
-    List<Course> courses;
-    TreeMap<String, List<Course>> treeMap;
+    private TreeMap<String, List<Course>> treeMap;
+    private List<Course> courses;
 
     public CourseOfferings(String path) {
         CsvParser csvParser = new CsvParser(path);
-        courses = csvParser.getData();
-//        sortOfferings();
-        createTreeMap();
+        courses = csvParser.getCsvData();
         aggregateSameCourses();
-        dumpCourses();
+        createTreeMap();
+        sortOfferings();
+        aggregateSameSections();
     }
 
+    public void dumpCourses() {
+        Collection<List<Course>> allOfferings = treeMap.values();
+        for(List<Course> offering : allOfferings) {
+            if(offering.isEmpty()) continue;
+            System.out.println(offering.getFirst().getSubject() + offering.getFirst().getCatalogNumber());
+            for(Course course : offering) {
+                System.out.print(course);
+            }
+        }
+    }
+
+    private void aggregateSameCourses() {
+        HashMap<String, Course> hashMap = new HashMap<>();
+        for(Course course : courses) {
+            String key = course.getFullKey();
+            if(hashMap.containsKey(key)) {
+                Course sameCourse = hashMap.get(key);
+                sameCourse.updateEnrollment(course);
+                sameCourse.addInstructor(course.getInstructors());
+            } else {
+                hashMap.put(key, course);
+            }
+        }
+        this.courses = new ArrayList<>();
+        courses.addAll(hashMap.values());
+    }
 
     private void createTreeMap() {
         treeMap = new TreeMap<>();
@@ -32,6 +62,26 @@ public class CourseOfferings {
         }
     }
 
+    private void aggregateSameSections() {
+        Collection<List<Course>> allOfferings = treeMap.values();
+        for(List<Course> offering : allOfferings) {
+            HashMap<String, Course> components = new HashMap<>();
+            List<Course> removeCourses = new ArrayList<>();
+            for(Course course : offering) {
+                String key = course.getSemester() + course.getLocation();
+                if(components.containsKey(key)) {
+                    components.get(key).addCourseComponent(course);
+                    components.get(key).addSingleInstructor(course.getInstructors());
+                    removeCourses.add(course);
+                } else {
+                    components.put(key, course);
+                }
+            }
+            for(Course course : removeCourses)
+                offering.remove(course);
+        }
+    }
+
     private void sortOfferings() {
         Collection<List<Course>> allOfferings = treeMap.values();
         for(List<Course> offerings : allOfferings) {
@@ -43,39 +93,6 @@ public class CourseOfferings {
                     return val;
                 }
             });
-        }
-    }
-
-    private void aggregateSameCourses() {
-        HashMap<String, Course> hashMap = new HashMap<>();
-        for(Course course : courses) {
-            String key = course.getKey();
-            if(hashMap.containsKey(key)) {
-                Course sameCourse = hashMap.get(key);
-                sameCourse.updateEnrollement(course);
-                sameCourse.addInstructor(course.getInstructors());
-            } else {
-                hashMap.put(key, course);
-            }
-        }
-        this.courses = new ArrayList<>();
-        courses.addAll(hashMap.values());
-    }
-
-
-    public void dumpCourses() {
-        Collection<List<Course>> allOfferings = treeMap.values();
-        for(List<Course> offering : allOfferings) {
-            if(offering.isEmpty()) continue;
-            System.out.println(offering.getFirst().getSubject() + offering.getFirst().getCatalogNumber());
-            List<String> components = new ArrayList<>();
-            for(Course course : offering) {
-                String key = course.getSemester() + course.getLocation();
-                if(!components.contains(key))
-                    System.out.println("\t" + course.getSemester() + " in " + course.getLocation() + " by " + course.getInstructors());
-                System.out.println("\t\t" + " Type=" + course.getComponentCode() + " Enrollment=" + course.getEnrollmentTotal()+ "/" + course.getEnrollmentCap());
-                components.add(key);
-            }
         }
     }
 }
