@@ -11,6 +11,7 @@ import java.util.*;
 public class CourseOfferings {
     private TreeMap<String, List<Course>> treeMap;
     private List<Course> courses;
+    private List<Department> departments;
 
     public CourseOfferings(String path) {
         CsvParser csvParser = new CsvParser(path);
@@ -19,16 +20,51 @@ public class CourseOfferings {
         createTreeMap();
         sortOfferings();
         aggregateSameSections();
+        assignDeptIds();
     }
 
     public void dumpCourses() {
         Collection<List<Course>> allOfferings = treeMap.values();
         for(List<Course> offering : allOfferings) {
             if(offering.isEmpty()) continue;
-            System.out.println(offering.getFirst().getSubject() + offering.getFirst().getCatalogNumber());
+            Course firstCourse = offering.getFirst();
+            System.out.println(firstCourse.getSubject() + firstCourse.getCatalogNumber());
             for(Course course : offering) {
                 System.out.print(course);
             }
+        }
+    }
+
+    public List<String> getCoursesInDept(int deptId) {
+        if(deptId > 0 && deptId <= departments.size()) {
+            return departments.get(deptId-1).getCourses();
+        }
+        throw new IllegalArgumentException();
+    }
+
+
+    public List<Department> getDepartments() {
+        return departments;
+    }
+
+    private void assignDeptIds() {
+        departments = new ArrayList<>();
+        Collection<List<Course>> allOfferings = treeMap.values();
+        HashMap<String, Integer> hashMap = new HashMap<>();
+        int deptId = 0;
+        boolean newDepartment = false;
+        for (List<Course> offerings : allOfferings) {
+            if(offerings.isEmpty()) continue;
+            Course firstCourse = offerings.getFirst();
+            if(!hashMap.containsKey(firstCourse.getDepartmentKey())) {
+                hashMap.put(firstCourse.getDepartmentKey(), ++deptId);
+                newDepartment = true;
+            } else {
+                newDepartment = false;
+            }
+            if(newDepartment) departments.add(new Department(deptId, firstCourse.getSubject()));
+            int index = hashMap.get(firstCourse.getDepartmentKey())-1;
+            departments.get(index).addCourse(offerings);
         }
     }
 
@@ -94,5 +130,21 @@ public class CourseOfferings {
                 }
             });
         }
+    }
+
+    public List<Course> getCourseSections(String catalogNumber, String departmentName) {
+       return treeMap.get(departmentName + catalogNumber);
+    }
+
+    public List<Course> getOfferingSections(String catalogNumber, String name, long semesterCode, String location) {
+       List<Course> courses = treeMap.get(name + catalogNumber);
+       List<Course> courseSections = null;
+       for(Course course : courses) {
+           if(course.getSemester().equals(String.valueOf(semesterCode)) && course.getLocation().equals(location)) {
+              courseSections = course.getSectionTypeOfferings();
+              break;
+           }
+       }
+       return courseSections;
     }
 }
