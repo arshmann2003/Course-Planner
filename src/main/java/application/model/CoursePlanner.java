@@ -1,6 +1,7 @@
 package application.model;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Class to manipulate and efficiently store csv data
@@ -8,14 +9,18 @@ import java.util.*;
  * Dumps courses in a formatted way to servers terminal
  * Sorts courses based on name + catalog number
  */
-public class CourseOfferings {
+public class CoursePlanner {
     private TreeMap<String, List<Course>> treeMap;
     private List<Course> courses;
     private List<Department> departments;
+    private List<Watcher> watchers;
+    private final AtomicLong watcherId;
 
-    public CourseOfferings(String path) {
+    public CoursePlanner(String path) {
         CsvParser csvParser = new CsvParser(path);
         courses = csvParser.getCsvData();
+        watchers = new ArrayList<>();
+        watcherId = new AtomicLong(1);
         aggregateSameCourses();
         createTreeMap();
         sortOfferings();
@@ -35,9 +40,11 @@ public class CourseOfferings {
         }
     }
 
-    public List<String> getCoursesInDept(int deptId) {
-        if(deptId > 0 && deptId <= departments.size()) {
-            return departments.get(deptId-1).getCourses();
+    public List<String> getCoursesInDept(String name) {
+        for(Department department : departments) {
+            if(department.getDeptName().equals(name)) {
+                return department.getCourses();
+            }
         }
         throw new IllegalArgumentException();
     }
@@ -50,21 +57,19 @@ public class CourseOfferings {
     private void assignDeptIds() {
         departments = new ArrayList<>();
         Collection<List<Course>> allOfferings = treeMap.values();
-        HashMap<String, Integer> hashMap = new HashMap<>();
-        int deptId = 0;
+        HashSet<String> hashSet = new HashSet<>();
         boolean newDepartment = false;
         for (List<Course> offerings : allOfferings) {
             if(offerings.isEmpty()) continue;
             Course firstCourse = offerings.getFirst();
-            if(!hashMap.containsKey(firstCourse.getDepartmentKey())) {
-                hashMap.put(firstCourse.getDepartmentKey(), ++deptId);
+            if(!hashSet.contains(firstCourse.getDepartmentKey())) {
+                hashSet.add(firstCourse.getDepartmentKey());
                 newDepartment = true;
             } else {
                 newDepartment = false;
             }
-            if(newDepartment) departments.add(new Department(deptId, firstCourse.getSubject()));
-            int index = hashMap.get(firstCourse.getDepartmentKey())-1;
-            departments.get(index).addCourse(offerings);
+            if(newDepartment) departments.add(new Department(firstCourse.getSubject()));
+            departments.getLast().addCourse(offerings);
         }
     }
 
@@ -146,5 +151,69 @@ public class CourseOfferings {
            }
        }
        return courseSections;
+    }
+
+    public void addNewCourseOffering(Course course) {
+        String key = course.getSubject() + course.getCatalogNumber();
+        if(treeMap.containsKey(key)) {
+            List<Course> courseOfferings = treeMap.get(key);
+            for(Course courseOffering : courseOfferings) {
+                if(courseOffering.getFullKey().equals(course.getFullKey())) {
+                    courseOffering.updateEnrollment(course);
+                    updateWatchers(course);
+                    return;
+                } else if(courseOffering.getSectionKey().equals(course.getSectionKey())) {
+                   courseOffering.addCourseComponent(course);
+                   updateWatchers(course);
+                   return;
+                }
+            }
+            treeMap.get(key).add(course);
+        } else {
+            List<Course> newOffering = new ArrayList<>();
+            newOffering.add(course);
+            treeMap.put(key, newOffering);
+        }
+        assignDeptIds();
+        sortOfferings();
+        updateWatchers(course);
+    }
+
+    private void updateWatchers(Course course) {
+        for(Watcher watcher : watchers) {
+            if(watcher.key.equals(course.getCatalogKey())) {
+                watcher.addEvent(course);
+            }
+        }
+    }
+
+    public void addWatcher(String name, String catalogNumber, long courseId, long deptId) {
+        if (watchers == null) watchers = new ArrayList<>();
+        Watcher watcher = new Watcher(watcherId.get(), name+catalogNumber, courseId, deptId);
+        watchers.add(watcher);
+        watcherId.getAndIncrement();
+    }
+
+    public List<Watcher> getWatchers() {
+        return watchers;
+    }
+
+    public void markInActiveWatcher(int watcherId) {
+        for(Watcher watcher : watchers) {
+            if(watcher.id == watcherId) {
+                watcher.markInactive();
+            }
+        }
+    }
+
+    public TreeMap<String, Integer> getNumberOfSeatsInDepartment(String deptName) {
+        assignDeptIds();
+        Department mainDepartment = null;
+        for(Department department : departments) {
+            if(department.getDeptName().equals(deptName))
+                mainDepartment = department;
+        }
+        TreeMap<String, Integer> map = mainDepartment.getNumOfSeatsPerSemester();
+        return map;
     }
 }

@@ -32,6 +32,7 @@ public class Course implements Comparable<Course>{
         return header + courseComponentInfos;
     }
 
+
     public void updateEnrollment(Course course) {
         int newEnrolmentTotal = Integer.parseInt(getEnrollmentTotal());
         newEnrolmentTotal += Integer.parseInt(course.getEnrollmentTotal());
@@ -42,8 +43,15 @@ public class Course implements Comparable<Course>{
     }
 
     public void addCourseComponent(Course course) {
+        addSingleInstructor(course.getInstructors());
         if(courseComponents==null)
             courseComponents = new ArrayList<>();
+        for(Course courseComponent : courseComponents) {
+            if(courseComponent.getFullKey().equals(course.getFullKey())){
+                courseComponent.updateEnrollment(course);
+                return;
+            }
+        }
         courseComponents.add(course);
     }
 
@@ -163,8 +171,38 @@ public class Course implements Comparable<Course>{
         return semester + subject + catalogNumber + location + componentCode;
     }
 
+    public String getCatalogKey() {
+        return subject + catalogNumber;
+    }
+
     @Override
     public int compareTo(Course o) {
         return  (semester+location).compareTo(o.getSemester() + o.getLocation());
+    }
+
+    public String getDepartmentKey() {
+        return getSubject();
+    }
+
+    public String getTerm() {
+        if(semester.isEmpty())
+            return "Unknown";
+        switch(semester.charAt(semester.length()-1)) {
+            case '1' -> {return "Spring";}
+            case '4' -> {return "Summer";}
+            case '7' -> {return "Fall";}
+            default -> {return "Unknown";}
+        }
+    }
+
+    public int getYear() {
+        if(semester.isEmpty())
+            return 0;
+        String year = "20"+ semester.substring(1, 3);
+        return Integer.valueOf(year);
+    }
+
+    public String getSectionKey() {
+        return semester + subject + catalogNumber + location;
     }
 }
