@@ -17,7 +17,7 @@ public class Department {
 
     public void addCourse(List<Course> courseOfferings) {
         if(courseOfferings==null) return;
-        String key = courseOfferings.getFirst().getCatalogNumber();
+        String key = courseOfferings.get(0).getCatalogNumber();
         if(hashMap.containsKey(key)) {
             hashMap.get(key).add(courseOfferings);
         } else {
