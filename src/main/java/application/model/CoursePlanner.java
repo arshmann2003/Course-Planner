@@ -28,13 +28,19 @@ public class CoursePlanner {
         assignDeptIds();
     }
 
+   private Course getFirstCourse(List<Course> offerings) {
+        if(offerings==null || offerings.isEmpty())
+            throw new IllegalStateException("Operation failed: The list is empty and no elements can be retrieved.");
+        return offerings.get(0);
+   }
+
     public void dumpCourses() {
         Collection<List<Course>> allOfferings = treeMap.values();
-        for(List<Course> offering : allOfferings) {
-            if(offering.isEmpty()) continue;
-            Course firstCourse = offering.getFirst();
+        for(List<Course> offerings : allOfferings) {
+            if(offerings.isEmpty()) continue;
+            Course firstCourse = getFirstCourse(offerings);
             System.out.println(firstCourse.getSubject() + firstCourse.getCatalogNumber());
-            for(Course course : offering) {
+            for(Course course : offerings) {
                 System.out.print(course);
             }
         }
@@ -61,7 +67,7 @@ public class CoursePlanner {
         boolean newDepartment = false;
         for (List<Course> offerings : allOfferings) {
             if(offerings.isEmpty()) continue;
-            Course firstCourse = offerings.getFirst();
+            Course firstCourse = getFirstCourse(offerings);
             if(!hashSet.contains(firstCourse.getDepartmentKey())) {
                 hashSet.add(firstCourse.getDepartmentKey());
                 newDepartment = true;
@@ -69,8 +75,15 @@ public class CoursePlanner {
                 newDepartment = false;
             }
             if(newDepartment) departments.add(new Department(firstCourse.getSubject()));
-            departments.getLast().addCourse(offerings);
+            Department lastDept = getLastDepartment(departments);
+            lastDept.addCourse(offerings);
         }
+    }
+
+    private Department getLastDepartment(List<Department> departments) {
+        if(departments==null || departments.isEmpty())
+            throw new IllegalStateException("Operation failed: The list is empty and no elements can be retrieved.");
+        return departments.get(departments.size()-1);
     }
 
     private void aggregateSameCourses() {
