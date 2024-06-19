@@ -14,11 +14,8 @@ The Course Planner project is a web application built using Java with Spring Boo
 - JavaScript
 - REST API
 
-## Installation
-1. Clone the repository:
-2. Navigate to the project directory.
-3. Build the project using Gradle:
-4. Run the application:
+## Deployment
+Deployed project on sfucourseplanner.tech
 
 ## Usage
 1. Access the application through the provided URL.
