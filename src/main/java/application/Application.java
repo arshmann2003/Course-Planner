@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 public class Application {
-    public static CoursePlanner coursePlanner = new CoursePlanner("data/course_data_2018.csv");
+    public static CoursePlanner coursePlanner = new CoursePlanner("data/course_data_2022.csv");
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class);
